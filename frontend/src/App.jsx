@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, LayoutDashboard, Settings, PieChart, HardDrive, Play, Eye, AlertTriangle, Download, UploadCloud, ChevronRight, Activity, Trash } from 'lucide-react';
+import { Database, LayoutDashboard, Settings, PieChart, HardDrive, Play, Eye, AlertTriangle, Download, UploadCloud, Activity } from 'lucide-react';
 import { 
   LineChart, Line, 
   BarChart, Bar, 
@@ -48,7 +48,6 @@ function App() {
         if (d.datasets && d.datasets.length > 0) {
           setDatasets(d.datasets);
           if (selectDefault || !selectedDataset) {
-            // If the current selection still exists in the new list, keep it; otherwise pick the first one
             const exists = d.datasets.some(ds => ds.name === selectedDataset);
             if (!exists) {
               setSelectedDataset(d.datasets[0].name);
@@ -145,7 +144,6 @@ function App() {
             if (!keys.includes(xAxisCol)) {
               setXAxisCol(keys[0]);
             }
-            // Filter out Y-axis selections that no longer exist in query output
             const validYCols = yAxisCols.filter(c => keys.includes(c));
             if (validYCols.length === 0) {
               setYAxisCols(keys[1] ? [keys[1]] : [keys[0]]);
@@ -291,8 +289,8 @@ function App() {
             <YAxis stroke="#94a3b8" tickLine={false} name={yAxisCols[0] || 'Value'} />
             <ChartTooltip 
               contentStyle={{ 
-                backgroundColor: 'rgba(20, 26, 40, 0.95)', 
-                border: '1px solid rgba(255,255,255,0.1)', 
+                backgroundColor: 'var(--m3-surface-variant)', 
+                border: '1px solid var(--m3-outline)', 
                 borderRadius: '12px',
                 boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)'
               }}
@@ -300,7 +298,7 @@ function App() {
               itemStyle={{ color: 'var(--text-primary)' }}
             />
             <Legend />
-            <Scatter name={yAxisCols[0] || 'Data Series'} data={data} fill="var(--accent-primary)" />
+            <Scatter name={yAxisCols[0] || 'Data Series'} data={data} fill="var(--m3-primary)" />
           </ScatterChart>
         </ResponsiveContainer>
       );
@@ -313,8 +311,8 @@ function App() {
           <RechartsPieChart>
             <ChartTooltip 
               contentStyle={{ 
-                backgroundColor: 'rgba(20, 26, 40, 0.95)', 
-                border: '1px solid rgba(255,255,255,0.1)', 
+                backgroundColor: 'var(--m3-surface-variant)', 
+                border: '1px solid var(--m3-outline)', 
                 borderRadius: '12px'
               }}
             />
@@ -326,7 +324,7 @@ function App() {
               cx="50%"
               cy="50%"
               outerRadius={100}
-              fill="var(--accent-primary)"
+              fill="var(--m3-primary)"
               labelLine={false}
               label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
             >
@@ -350,8 +348,8 @@ function App() {
           <YAxis stroke="#94a3b8" tickLine={false} />
           <ChartTooltip 
             contentStyle={{ 
-              backgroundColor: 'rgba(20, 26, 40, 0.95)', 
-              border: '1px solid rgba(255,255,255,0.1)', 
+              backgroundColor: 'var(--m3-surface-variant)', 
+              border: '1px solid var(--m3-outline)', 
               borderRadius: '12px',
               boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)'
             }}
@@ -399,10 +397,10 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Sidebar */}
-      <aside className="glass-panel sidebar">
+      {/* Sidebar Navigation Drawer */}
+      <aside className="sidebar">
         <div className="brand">
-          <Database size={24} color="var(--accent-primary)" />
+          <Database size={24} color="var(--m3-primary)" />
           DataMine
         </div>
         <ul className="nav-links">
@@ -420,25 +418,25 @@ function App() {
           </li>
         </ul>
 
-        {/* Info panel in Sidebar */}
+        {/* Sidebar Info Panel */}
         <div className="sidebar-info-card">
           <h4><Activity size={14} color="var(--accent-success)" /> Performance Mode</h4>
           <p>
-            CSVs are scanned natively. To make reads 10x faster, switch to the Repository tab and convert large CSVs to optimized Parquet formats.
+            Datasets are queryable on disk. For 10x faster response speeds, use the Repository manager to convert CSVs to Parquet.
           </p>
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <main className="main-content">
         {/* Topbar */}
-        <div className="glass-panel topbar">
+        <div className="topbar">
           <div className="topbar-left">
             <h3>Data Repository Workspace</h3>
             <span className="subtitle">
               {activeTab === 'workspace' 
                 ? `Active File: ${selectedDataset || 'None'}` 
-                : 'Manage and optimize CSV/Parquet uploads'}
+                : 'Upload, manage and optimize repository datasets'}
             </span>
           </div>
           <div className="topbar-right">
@@ -457,16 +455,16 @@ function App() {
           </div>
         </div>
 
-        {/* Tab Selection Content */}
+        {/* Dynamic Tab Render */}
         {activeTab === 'workspace' ? (
           <div className="workspace-layout">
             {/* Workspace Area: Editor, Visualizer, Table */}
             <div className="workspace-main">
               {/* SQL Editor Card */}
-              <div className="glass-panel workspace-card">
+              <div className="m3-card workspace-card">
                 <div className="card-header-with-actions">
                   <div className="header-title">
-                    <Database size={18} color="var(--accent-primary)" />
+                    <Database size={18} color="var(--m3-primary)" />
                     SQL Query Editor
                   </div>
                   {executionTime !== null && (
@@ -477,7 +475,7 @@ function App() {
                   )}
                 </div>
 
-                {/* Editor Controls / Templates */}
+                {/* SQL Templates Panel */}
                 <div className="editor-templates">
                   <span className="templates-label">Templates:</span>
                   <button className="template-btn" onClick={() => applyTemplate('preview')}>Preview</button>
@@ -519,7 +517,7 @@ function App() {
               </div>
 
               {/* Visualizer Card */}
-              <div className="glass-panel workspace-card">
+              <div className="m3-card workspace-card">
                 <div className="card-header-with-actions">
                   <div className="header-title">
                     <PieChart size={18} color="var(--accent-secondary)" />
@@ -536,24 +534,29 @@ function App() {
                         </select>
                       </div>
 
+                      {/* M3 Segmented Buttons for Chart Type */}
                       <div className="control-group">
-                        <label>Type:</label>
-                        <select value={chartType} onChange={e => setChartType(e.target.value)}>
-                          <option value="line">Line</option>
-                          <option value="bar">Bar</option>
-                          <option value="area">Area</option>
-                          <option value="scatter">Scatter</option>
-                          <option value="pie">Pie</option>
-                        </select>
+                        <label style={{marginRight: '0.4rem'}}>Type:</label>
+                        <div className="m3-segmented-control">
+                          {['line', 'bar', 'area', 'scatter', 'pie'].map(t => (
+                            <button 
+                              key={t}
+                              className={`m3-segment-btn ${chartType === t ? 'selected' : ''}`}
+                              onClick={() => setChartType(t)}
+                            >
+                              {t.charAt(0).toUpperCase() + t.slice(1)}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Multi-series selection row */}
+                {/* Multi-series Y Toggle Pills */}
                 {data.length > 0 && chartType !== 'pie' && chartType !== 'scatter' && (
                   <div className="multi-series-selector">
-                    <span className="selector-label">Y-Axis Series (Toggle multi):</span>
+                    <span className="selector-label">Y-Axis Series:</span>
                     <div className="series-pills">
                       {Object.keys(data[0] || {}).map(k => {
                         const isSelected = yAxisCols.includes(k);
@@ -571,7 +574,7 @@ function App() {
                   </div>
                 )}
 
-                {/* Single target indicator for Pie/Scatter */}
+                {/* Single Select Y Pills (Pie / Scatter) */}
                 {data.length > 0 && (chartType === 'pie' || chartType === 'scatter') && (
                   <div className="multi-series-selector">
                     <span className="selector-label">Y-Axis Variable:</span>
@@ -596,7 +599,7 @@ function App() {
                   {loading ? (
                     <div className="loader-container">
                       <div className="spinner"></div>
-                      <div>Querying dataset...</div>
+                      <div>Executing SQL...</div>
                     </div>
                   ) : (
                     renderChart()
@@ -605,7 +608,7 @@ function App() {
               </div>
 
               {/* Raw Data Preview Card */}
-              <div className="glass-panel workspace-card">
+              <div className="m3-card workspace-card">
                 <div className="card-header-with-actions">
                   <div className="header-title">
                     <Eye size={18} />
@@ -655,11 +658,11 @@ function App() {
               </div>
             </div>
 
-            {/* Sidebar Schema Reference catalog */}
+            {/* Sidebar Schema Dictionary */}
             <div className="workspace-sidebar">
-              <div className="glass-panel schema-card">
+              <div className="m3-card schema-card">
                 <div className="schema-header">
-                  <Database size={16} color="var(--accent-primary)" />
+                  <Database size={16} color="var(--m3-primary)" />
                   Schema Dictionary
                 </div>
                 <div className="schema-list">
@@ -667,112 +670,112 @@ function App() {
                     <div key={col.column_name} className="schema-item" title="Click to copy column name" onClick={() => {
                       navigator.clipboard.writeText(col.column_name);
                     }}>
-                    <div className="schema-col-name">{col.column_name}</div>
-                    <div className="schema-col-type">{col.column_type}</div>
-                  </div>
-                ))}
-                {schema.length === 0 && (
-                  <div className="schema-empty">Loading schema dictionary...</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Repository Tab Content */
-        <div className="repository-layout">
-          {/* File Upload card */}
-          <div className="glass-panel workspace-card">
-            <div className="header-title">
-              <UploadCloud size={20} color="var(--accent-primary)" style={{marginRight: '0.5rem'}} />
-              Upload New CSV / Parquet File
-            </div>
-            <form onSubmit={handleUpload} className="upload-form">
-              <div className="dropzone-container">
-                <input 
-                  type="file" 
-                  id="file-input"
-                  accept=".csv,.parquet"
-                  onChange={e => setUploadFile(e.target.files[0])}
-                  className="file-input-raw"
-                />
-                <label htmlFor="file-input" className="file-input-label">
-                  <UploadCloud size={32} color="var(--text-secondary)" style={{marginBottom: '0.5rem'}} />
-                  <span>{uploadFile ? uploadFile.name : 'Click to select CSV or Parquet file'}</span>
-                </label>
-              </div>
-              <button 
-                type="submit" 
-                className="run-query-btn"
-                disabled={!uploadFile || uploading}
-              >
-                {uploading ? 'Uploading...' : 'Upload File'}
-              </button>
-            </form>
-            {uploadMessage && (
-              <div className="upload-message-bar">
-                {uploadMessage}
-              </div>
-            )}
-          </div>
-
-          {/* Dataset Manager Table Card */}
-          <div className="glass-panel workspace-card" style={{marginTop: '1rem'}}>
-            <div className="header-title" style={{marginBottom: '1rem'}}>
-              <HardDrive size={18} color="var(--accent-secondary)" style={{marginRight: '0.5rem'}} />
-              Local File Repository Catalog
-            </div>
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>File Name</th>
-                    <th>Format Type</th>
-                    <th>File Size</th>
-                    <th>Status / Optimization</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {datasets.map(ds => (
-                    <tr key={ds.name}>
-                      <td style={{fontWeight: 600}}>{ds.name}</td>
-                      <td>
-                        <span className={`format-badge ${ds.format.toLowerCase()}`}>
-                          {ds.format}
-                        </span>
-                      </td>
-                      <td>{formatBytes(ds.size_bytes)}</td>
-                      <td>
-                        {ds.format === 'CSV' ? (
-                          <button 
-                            className="optimize-btn"
-                            onClick={() => handleConvertToParquet(ds.name)}
-                            disabled={converting[ds.name]}
-                          >
-                            {converting[ds.name] ? 'Optimizing...' : 'Convert to Parquet'}
-                          </button>
-                        ) : (
-                          <span className="optimized-label">
-                            <Activity size={12} color="var(--accent-success)" style={{marginRight: '0.25rem'}} />
-                            Optimized (Fast Engine)
-                          </span>
-                        )}
-                      </td>
-                    </tr>
+                      <div className="schema-col-name">{col.column_name}</div>
+                      <div className="schema-col-type">{col.column_type}</div>
+                    </div>
                   ))}
-                  {datasets.length === 0 && (
-                    <tr>
-                      <td colSpan="4" className="no-data-cell">
-                        No datasets found in workspace. Drop one in doc data/ directory or upload one above!
-                      </td>
-                    </tr>
+                  {schema.length === 0 && (
+                    <div className="schema-empty">Loading dictionary schemas...</div>
                   )}
-                </tbody>
-              </table>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          /* Repository Manager Tab Content */
+          <div className="repository-layout">
+            {/* File Upload card */}
+            <div className="m3-card workspace-card">
+              <div className="header-title">
+                <UploadCloud size={20} color="var(--m3-primary)" style={{marginRight: '0.5rem'}} />
+                Upload New CSV / Parquet File
+              </div>
+              <form onSubmit={handleUpload} className="upload-form">
+                <div className="dropzone-container">
+                  <input 
+                    type="file" 
+                    id="file-input"
+                    accept=".csv,.parquet"
+                    onChange={e => setUploadFile(e.target.files[0])}
+                    className="file-input-raw"
+                  />
+                  <label htmlFor="file-input" className="file-input-label">
+                    <UploadCloud size={32} color="var(--text-secondary)" style={{marginBottom: '0.5rem'}} />
+                    <span>{uploadFile ? uploadFile.name : 'Drag & drop or click to select file'}</span>
+                  </label>
+                </div>
+                <button 
+                  type="submit" 
+                  className="run-query-btn"
+                  disabled={!uploadFile || uploading}
+                >
+                  {uploading ? 'Uploading...' : 'Upload File'}
+                </button>
+              </form>
+              {uploadMessage && (
+                <div className="upload-message-bar">
+                  {uploadMessage}
+                </div>
+              )}
+            </div>
+
+            {/* Dataset Manager Table Card */}
+            <div className="m3-card workspace-card" style={{marginTop: '1rem'}}>
+              <div className="header-title" style={{marginBottom: '1rem'}}>
+                <HardDrive size={18} color="var(--accent-secondary)" style={{marginRight: '0.5rem'}} />
+                Local File Repository Catalog
+              </div>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>File Name</th>
+                      <th>Format Type</th>
+                      <th>File Size</th>
+                      <th>Status / Optimization</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {datasets.map(ds => (
+                      <tr key={ds.name}>
+                        <td style={{fontWeight: 600}}>{ds.name}</td>
+                        <td>
+                          <span className={`format-badge ${ds.format.toLowerCase()}`}>
+                            {ds.format}
+                          </span>
+                        </td>
+                        <td>{formatBytes(ds.size_bytes)}</td>
+                        <td>
+                          {ds.format === 'CSV' ? (
+                            <button 
+                              className="optimize-btn"
+                              onClick={() => handleConvertToParquet(ds.name)}
+                              disabled={converting[ds.name]}
+                            >
+                              {converting[ds.name] ? 'Optimizing...' : 'Convert to Parquet'}
+                            </button>
+                          ) : (
+                            <span className="optimized-label">
+                              <Activity size={12} color="var(--accent-success)" style={{marginRight: '0.25rem'}} />
+                              Optimized (Fast Engine)
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {datasets.length === 0 && (
+                      <tr>
+                        <td colSpan="4" className="no-data-cell">
+                          No datasets found. Drop files into data/ or upload above!
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

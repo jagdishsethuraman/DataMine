@@ -4,6 +4,19 @@ All notable changes to the **DataMine** project are documented here.
 
 ---
 
+## [0.3.0] - 2026-06-08
+
+### Added
+- **Material Design 3 Redesign**:
+  - Migrated custom glassmorphism styling to flat, elevated M3 Outlined Cards.
+  - Implemented M3 Slate/Charcoal Design Tokens (`--m3-bg`, `--m3-surface`, etc.) to enhance readability and contrast in dark mode.
+  - Replaced sidebar navigation highlights with M3 **capsule-shaped active drawer highlights**.
+  - Replaced visualization selection dropdowns with an **M3 Segmented Button Group** pill container.
+  - Restyled all form text areas, catalogs, and error banners to align with M3 specification shapes.
+  - Tested layout structure to support WCAG AA color contrast ratios and keyboard focus contours.
+
+---
+
 ## [0.2.0] - 2026-06-07
 
 ### Added
