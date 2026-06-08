@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, LayoutDashboard, Settings, PieChart, HardDrive, Play, Eye, AlertTriangle, Download, UploadCloud, Activity } from 'lucide-react';
+import { Database, LayoutDashboard, Settings, PieChart, HardDrive, Play, Eye, AlertTriangle, Download, UploadCloud, Activity, Bookmark, History, Trash, Copy } from 'lucide-react';
 import { 
   LineChart, Line, 
   BarChart, Bar, 
@@ -8,11 +8,14 @@ import {
   PieChart as RechartsPieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, Legend
 } from 'recharts';
+import CodeMirror from '@uiw/react-codemirror';
+import { sql } from '@codemirror/lang-sql';
 
 const COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#ef4444", "#f59e0b", "#06b6d4"];
 
 function App() {
   const [activeTab, setActiveTab] = useState('workspace');
+  const [sidebarTab, setSidebarTab] = useState('schema'); // schema, saved, history
   const [datasets, setDatasets] = useState([]);
   const [selectedDataset, setSelectedDataset] = useState('');
   const [schema, setSchema] = useState([]);
@@ -25,11 +28,38 @@ function App() {
   const [executionTime, setExecutionTime] = useState(null);
   const [queryError, setQueryError] = useState('');
 
+  // Persisted Queries & History
+  const [savedQueries, setSavedQueries] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('dm_saved_queries')) || [];
+    } catch {
+      return [];
+    }
+  });
+  const [queryHistory, setQueryHistory] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('dm_query_history')) || [];
+    } catch {
+      return [];
+    }
+  });
+  const [newQueryName, setNewQueryName] = useState('');
+
   // Repository states
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [converting, setConverting] = useState({});
+
+  // Sync saved queries to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('dm_saved_queries', JSON.stringify(savedQueries));
+  }, [savedQueries]);
+
+  // Sync history queries to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('dm_query_history', JSON.stringify(queryHistory));
+  }, [queryHistory]);
 
   // Helper to format bytes
   const formatBytes = (bytes) => {
@@ -38,6 +68,11 @@ function App() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Clean filename to database view identifier
+  const cleanTableName = (name) => {
+    return name.replace(/\.[^/.]+$/, "").replace(/-/g, "_").replace(/\./g, "_");
   };
 
   // Fetch datasets function
@@ -86,8 +121,9 @@ function App() {
           setYAxisCols(numericCol ? [numericCol] : [currentSchema[1]?.column_name || currentSchema[0].column_name]);
         }
 
-        // Set default query
-        const defaultQuery = 'SELECT * FROM table LIMIT 100';
+        // Set default query referencing the clean table name directly
+        const cleanName = cleanTableName(selectedDataset);
+        const defaultQuery = `SELECT * FROM ${cleanName} LIMIT 100`;
         setQuery(defaultQuery);
 
         // Run initial preview query
@@ -136,6 +172,12 @@ function App() {
       .then(d => {
         setData(d.data || []);
         setExecutionTime(d.execution_time_ms);
+
+        // Append successfully run query to history list
+        const trimmedQ = customQuery.trim();
+        if (trimmedQ) {
+          setQueryHistory(prev => [trimmedQ, ...prev.filter(h => h !== trimmedQ)].slice(0, 15));
+        }
         
         // Adjust selected chart columns if they are no longer in the output
         if (d.data && d.data.length > 0) {
@@ -158,6 +200,28 @@ function App() {
         setData([]);
       })
       .finally(() => setLoading(false));
+  };
+
+  // Save current query
+  const handleSaveQuery = () => {
+    const trimmedName = newQueryName.trim();
+    const trimmedQ = query.trim();
+    if (!trimmedName || !trimmedQ) return;
+    
+    const newSaved = {
+      id: Date.now().toString(),
+      name: trimmedName,
+      query: trimmedQ
+    };
+    
+    setSavedQueries([newSaved, ...savedQueries]);
+    setNewQueryName('');
+  };
+
+  // Delete saved query
+  const handleDeleteSavedQuery = (e, id) => {
+    e.stopPropagation();
+    setSavedQueries(savedQueries.filter(q => q.id !== id));
   };
 
   // Convert CSV to Parquet format
@@ -244,29 +308,30 @@ function App() {
 
   // SQL Presets Template applicator
   const applyTemplate = (tmpl) => {
-    let sql = '';
+    let sqlVal = '';
+    const cleanName = cleanTableName(selectedDataset);
     const numericCol = schema.find(s => ['BIGINT', 'DOUBLE', 'INTEGER', 'FLOAT'].includes(s.column_type))?.column_name || 'price';
     const textCol = schema.find(s => ['VARCHAR', 'TEXT'].includes(s.column_type))?.column_name || 'category';
     const dateCol = schema.find(s => ['TIMESTAMP', 'DATE'].includes(s.column_type))?.column_name || 'transaction_date';
 
     switch (tmpl) {
       case 'preview':
-        sql = 'SELECT * FROM table LIMIT 100';
+        sqlVal = `SELECT * FROM ${cleanName} LIMIT 100`;
         break;
       case 'group_by':
-        sql = `SELECT ${textCol}, COUNT(*) as count \nFROM table \nGROUP BY ${textCol} \nORDER BY count DESC \nLIMIT 10`;
+        sqlVal = `SELECT ${textCol}, COUNT(*) as count \nFROM ${cleanName} \nGROUP BY ${textCol} \nORDER BY count DESC \nLIMIT 10`;
         break;
       case 'agg':
-        sql = `SELECT ${textCol}, SUM(${numericCol}) as total_value \nFROM table \nGROUP BY ${textCol} \nORDER BY total_value DESC`;
+        sqlVal = `SELECT ${textCol}, SUM(${numericCol}) as total_value \nFROM ${cleanName} \nGROUP BY ${textCol} \nORDER BY total_value DESC`;
         break;
       case 'timeseries':
-        sql = `SELECT ${dateCol}, SUM(${numericCol}) as daily_value \nFROM table \nGROUP BY ${dateCol} \nORDER BY ${dateCol} ASC`;
+        sqlVal = `SELECT ${dateCol}, SUM(${numericCol}) as daily_value \nFROM ${cleanName} \nGROUP BY ${dateCol} \nORDER BY ${dateCol} ASC`;
         break;
       default:
-        sql = 'SELECT * FROM table LIMIT 100';
+        sqlVal = `SELECT * FROM ${cleanName} LIMIT 100`;
     }
-    setQuery(sql);
-    handleRunQuery(sql);
+    setQuery(sqlVal);
+    handleRunQuery(sqlVal);
   };
 
   // Render Recharts components dynamically
@@ -484,16 +549,37 @@ function App() {
                   <button className="template-btn" onClick={() => applyTemplate('timeseries')}>Time Series</button>
                 </div>
 
-                <div className="sql-editor-container">
-                  <textarea 
-                    className="sql-textarea"
+                {/* CodeMirror rich code editor integration */}
+                <div className="sql-editor-container" style={{ border: '1px solid var(--m3-outline)' }}>
+                  <CodeMirror
                     value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    placeholder="SELECT * FROM table LIMIT 100"
+                    height="135px"
+                    theme="dark"
+                    extensions={[sql()]}
+                    onChange={(value) => setQuery(value)}
                   />
                 </div>
 
-                <div className="editor-footer">
+                <div className="editor-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {/* Save Query Inline Form */}
+                  <div className="save-query-inline">
+                    <input 
+                      type="text" 
+                      placeholder="Save query name..." 
+                      value={newQueryName} 
+                      onChange={e => setNewQueryName(e.target.value)}
+                      className="save-query-input"
+                    />
+                    <button 
+                      onClick={handleSaveQuery} 
+                      disabled={!newQueryName.trim() || !query.trim()}
+                      className="save-query-btn"
+                    >
+                      <Bookmark size={14} />
+                      Save
+                    </button>
+                  </div>
+
                   <button 
                     className="run-query-btn" 
                     onClick={() => handleRunQuery()} 
@@ -658,26 +744,133 @@ function App() {
               </div>
             </div>
 
-            {/* Sidebar Schema Dictionary */}
+            {/* Sidebar Schema / Saved / History Tabbed Dictionary */}
             <div className="workspace-sidebar">
               <div className="m3-card schema-card">
-                <div className="schema-header">
-                  <Database size={16} color="var(--m3-primary)" />
-                  Schema Dictionary
+                {/* Workspace Sidebar Tabs Header */}
+                <div className="schema-header-tabs">
+                  <button 
+                    className={`sidebar-tab-btn ${sidebarTab === 'schema' ? 'active' : ''}`} 
+                    onClick={() => setSidebarTab('schema')}
+                  >
+                    <Database size={12} />
+                    Schema
+                  </button>
+                  <button 
+                    className={`sidebar-tab-btn ${sidebarTab === 'saved' ? 'active' : ''}`} 
+                    onClick={() => setSidebarTab('saved')}
+                  >
+                    <Bookmark size={12} />
+                    Saved ({savedQueries.length})
+                  </button>
+                  <button 
+                    className={`sidebar-tab-btn ${sidebarTab === 'history' ? 'active' : ''}`} 
+                    onClick={() => setSidebarTab('history')}
+                  >
+                    <History size={12} />
+                    History
+                  </button>
                 </div>
-                <div className="schema-list">
-                  {schema.map(col => (
-                    <div key={col.column_name} className="schema-item" title="Click to copy column name" onClick={() => {
-                      navigator.clipboard.writeText(col.column_name);
-                    }}>
-                      <div className="schema-col-name">{col.column_name}</div>
-                      <div className="schema-col-type">{col.column_type}</div>
+
+                {/* Tab Content 1: Schema & Available Table Joins */}
+                {sidebarTab === 'schema' && (
+                  <div className="tab-pane-content">
+                    <div className="schema-sub-header">Active Table: {cleanTableName(selectedDataset)}</div>
+                    <div className="schema-list">
+                      {schema.map(col => (
+                        <div key={col.column_name} className="schema-item" title="Click to copy column name" onClick={() => {
+                          navigator.clipboard.writeText(col.column_name);
+                        }}>
+                          <div className="schema-col-name">{col.column_name}</div>
+                          <div className="schema-col-type">{col.column_type}</div>
+                        </div>
+                      ))}
+                      {schema.length === 0 && (
+                        <div className="schema-empty">Loading dictionary schemas...</div>
+                      )}
                     </div>
-                  ))}
-                  {schema.length === 0 && (
-                    <div className="schema-empty">Loading dictionary schemas...</div>
-                  )}
-                </div>
+
+                    <div className="schema-sub-header" style={{ marginTop: '1.25rem' }}>Available Tables (Joins)</div>
+                    <div className="schema-list">
+                      {datasets.map(ds => {
+                        const tblName = cleanTableName(ds.name);
+                        return (
+                          <div 
+                            key={ds.name} 
+                            className="schema-item table-join-item" 
+                            title="Double-click to copy table name"
+                            onDoubleClick={() => navigator.clipboard.writeText(tblName)}
+                          >
+                            <div className="schema-col-name" style={{ color: 'var(--m3-primary)' }}>{tblName}</div>
+                            <div className="schema-col-type" style={{ fontSize: '0.6rem' }}>Format: {ds.format}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab Content 2: Saved Queries */}
+                {sidebarTab === 'saved' && (
+                  <div className="tab-pane-content">
+                    <div className="persistent-list">
+                      {savedQueries.map(sq => (
+                        <div 
+                          key={sq.id} 
+                          className="persistent-item hoverable"
+                          onClick={() => setQuery(sq.query)}
+                          title="Click to load into editor"
+                        >
+                          <div className="persistent-item-title">{sq.name}</div>
+                          <pre className="persistent-item-query-preview">{sq.query}</pre>
+                          <button 
+                            className="delete-item-btn" 
+                            onClick={(e) => handleDeleteSavedQuery(e, sq.id)}
+                            title="Delete query"
+                          >
+                            <Trash size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      {savedQueries.length === 0 && (
+                        <div className="schema-empty" style={{ padding: '3rem 0' }}>No saved queries. Save one in the editor footer!</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab Content 3: Recent Query History */}
+                {sidebarTab === 'history' && (
+                  <div className="tab-pane-content">
+                    <div className="persistent-list">
+                      {queryHistory.map((hq, idx) => (
+                        <div 
+                          key={idx} 
+                          className="persistent-item hoverable"
+                          onClick={() => setQuery(hq)}
+                          title="Click to load into editor"
+                        >
+                          <pre className="persistent-item-query-preview" style={{ maxHeight: '75px', WebkitLineClamp: 3 }}>
+                            {hq}
+                          </pre>
+                          <button 
+                            className="delete-item-btn copy-btn" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(hq);
+                            }}
+                            title="Copy to clipboard"
+                          >
+                            <Copy size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      {queryHistory.length === 0 && (
+                        <div className="schema-empty" style={{ padding: '3rem 0' }}>No query history yet. Run a SQL query first!</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

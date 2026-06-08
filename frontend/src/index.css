@@ -4,8 +4,8 @@
   --m3-surface-variant: #252429;
   --m3-primary: #3b82f6; /* Classic Royal Blue Accent */
   --m3-primary-hover: #2563eb;
-  --m3-secondary-container: rgba(59, 130, 246, 0.12); /* Capsule Highlight */
-  --m3-on-secondary-container: #d2e3fc; /* Highlight label color */
+  --m3-secondary-container: rgba(59, 130, 246, 0.12); /* Selected State Capsule */
+  --m3-on-secondary-container: #d2e3fc; /* selected label */
   --m3-outline: rgba(255, 255, 255, 0.12);
   --m3-outline-focus: #3b82f6;
   --text-primary: #e3e3e3;
@@ -243,7 +243,7 @@ body {
 }
 
 .workspace-sidebar {
-  width: 250px;
+  width: 260px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -272,7 +272,7 @@ body {
   color: var(--text-primary);
 }
 
-/* SQL Editor */
+/* SQL Editor & Templates */
 .editor-templates {
   display: flex;
   flex-wrap: wrap;
@@ -306,11 +306,11 @@ body {
   border-color: var(--m3-primary);
 }
 
-/* Outlined Container with Blue Focus Outline */
+/* CodeMirror Outlined Container styling */
 .sql-editor-container {
   border: 1px solid var(--m3-outline);
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--m3-surface-variant) !important;
   overflow: hidden;
   margin-bottom: 0.85rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -321,23 +321,59 @@ body {
   box-shadow: 0 0 0 1px var(--m3-outline-focus);
 }
 
-.sql-textarea {
-  width: 100%;
-  height: 120px;
+.cm-editor {
+  background: transparent !important;
+  font-size: 0.88rem !important;
+  font-family: 'Courier New', Courier, monospace !important;
+}
+
+.cm-scroller {
+  padding: 0.4rem 0 !important;
+}
+
+/* Save Query Inline Form */
+.save-query-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--m3-outline);
+  border-radius: 9999px; /* Capsule input block */
+  padding: 0.2rem 0.2rem 0.2rem 0.75rem;
+}
+
+.save-query-input {
   background: transparent;
   border: none;
   outline: none;
-  padding: 0.85rem;
-  color: #e2e8f0;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  resize: vertical;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  width: 140px;
 }
 
-.editor-footer {
+.save-query-btn {
+  background: var(--m3-surface-variant);
+  border: 1px solid var(--m3-outline);
+  border-radius: 9999px;
+  color: var(--text-secondary);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.15s ease;
+}
+
+.save-query-btn:hover:not(:disabled) {
+  border-color: var(--m3-primary);
+  color: var(--text-primary);
+}
+
+.save-query-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* M3 Elevated Run Button */
@@ -597,29 +633,70 @@ tr:hover {
   padding: 2.5rem;
 }
 
-/* Schema sidebar catalog */
+/* Sidebar Tabbed Workspace catalog */
 .schema-card {
   height: 100%;
-  padding: 1.5rem 1rem;
+  padding: 1.25rem 0.75rem;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.schema-header {
-  font-size: 0.9rem;
+.schema-header-tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--m3-outline);
+  border-radius: 9999px; /* M3 Tab Capsule wrapper */
+  padding: 0.2rem;
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
+}
+
+.sidebar-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 9999px;
+  color: var(--text-secondary);
+  padding: 0.4rem 0.5rem;
+  font-size: 0.72rem;
   font-weight: 600;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
-  flex-shrink: 0;
+  justify-content: center;
+  gap: 0.3rem;
+  transition: all 0.2s ease;
+}
+
+.sidebar-tab-btn:hover {
   color: var(--text-primary);
 }
 
-.schema-list {
+.sidebar-tab-btn.active {
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+
+.tab-pane-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
+}
+
+.schema-sub-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 0.5rem;
+  padding: 0 0.25rem;
+}
+
+.schema-list {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -638,6 +715,10 @@ tr:hover {
   background: var(--m3-secondary-container);
   border-color: var(--m3-primary);
   transform: translateX(2px);
+}
+
+.table-join-item:hover {
+  border-color: var(--accent-success);
 }
 
 .schema-col-name {
@@ -660,7 +741,82 @@ tr:hover {
   padding: 2rem 0;
 }
 
-/* Repository Tab Manager */
+/* History / Saved Queries Lists */
+.persistent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.persistent-item {
+  position: relative;
+  padding: 0.65rem 0.75rem;
+  background: var(--m3-surface-variant);
+  border: 1px solid var(--m3-outline);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding-right: 2.25rem; /* Space for delete button */
+}
+
+.persistent-item.hoverable:hover {
+  border-color: var(--m3-primary);
+  background: rgba(59, 130, 246, 0.04);
+  transform: translateY(-0.5px);
+}
+
+.persistent-item-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.persistent-item-query-preview {
+  font-size: 0.68rem;
+  font-family: monospace;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.15);
+  padding: 0.35rem;
+  border-radius: 6px;
+  overflow: hidden;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.delete-item-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.65rem;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.delete-item-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-danger);
+}
+
+.delete-item-btn.copy-btn:hover {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent-success);
+}
+
+/* Repository Tab Manager Styles */
 .repository-layout {
   display: flex;
   flex-direction: column;

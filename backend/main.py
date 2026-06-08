@@ -74,22 +74,44 @@ def get_schema(dataset_name: str):
 @app.post("/query/{dataset_name}")
 def query_dataset(dataset_name: str, req: QueryRequest):
     """Execute a custom SQL query on the dataset.
-    The table name should be written as `table` in the query.
-    Example query: SELECT * FROM table LIMIT 10
+    Register all repository CSV and Parquet files as temporary views in DuckDB
+    so that they can be referenced and joined directly in standard SQL statements.
+    Example: SELECT * FROM Walmart JOIN sample ON Walmart.product_id = sample.id
     """
-    file_path = os.path.join(DATA_DIR, dataset_name)
-    if not os.path.exists(file_path):
+    active_path = os.path.join(DATA_DIR, dataset_name)
+    if not os.path.exists(active_path):
         raise HTTPException(status_code=404, detail="Dataset not found")
-    
-    # Replace the generic 'table' with read_parquet or read_csv_auto call
-    read_func = f"read_parquet('{file_path}')" if dataset_name.endswith(".parquet") else f"read_csv_auto('{file_path}')"
-    sql = req.query.replace("table", read_func)
     
     start_time = time.time()
     try:
         cursor = con.cursor()
-        df = cursor.execute(sql).df()
+        
+        # Load Parquet extension
+        try:
+            cursor.execute("INSTALL parquet; LOAD parquet;")
+        except Exception:
+            pass
+            
+        # 1. Scan files and register views using cleaned table names
+        csv_files = glob.glob(os.path.join(DATA_DIR, "*.csv"))
+        parquet_files = glob.glob(os.path.join(DATA_DIR, "*.parquet"))
+        for f in csv_files + parquet_files:
+            fname = os.path.basename(f)
+            # Remove extension and clean names (replace hyphen and dot with underscores)
+            clean_name = os.path.splitext(fname)[0].replace("-", "_").replace(".", "_")
+            read_func = "read_parquet" if f.endswith(".parquet") else "read_csv_auto"
+            
+            # Create view for this file
+            cursor.execute(f'CREATE OR REPLACE VIEW "{clean_name}" AS SELECT * FROM {read_func}(\'{f}\')')
+            
+        # 2. Also register the active dataset as 'table' view for backward compatibility
+        active_read_func = "read_parquet" if active_path.endswith(".parquet") else "read_csv_auto"
+        cursor.execute(f'CREATE OR REPLACE VIEW "table" AS SELECT * FROM {active_read_func}(\'{active_path}\')')
+        
+        # 3. Execute user query directly
+        df = cursor.execute(req.query).df()
         execution_time_ms = round((time.time() - start_time) * 1000, 2)
+        
         # Convert NaN/NaT to None for JSON serialization
         df = df.where(df.notnull(), None)
         return {
@@ -128,11 +150,10 @@ def convert_to_parquet(dataset_name: str):
     
     try:
         cursor = con.cursor()
-        # Install and load parquet extension just in case
         try:
             cursor.execute("INSTALL parquet; LOAD parquet;")
         except Exception:
-            pass  # Already bundled/loaded
+            pass
             
         cursor.execute(f"COPY (SELECT * FROM read_csv_auto('{csv_path}')) TO '{parquet_path}' (FORMAT PARQUET)")
         

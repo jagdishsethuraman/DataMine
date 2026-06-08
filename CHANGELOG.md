@@ -4,6 +4,27 @@ All notable changes to the **DataMine** project are documented here.
 
 ---
 
+## [0.4.0] - 2026-06-08
+
+### Added
+- **Rich SQL Code Editor (CodeMirror)**:
+  - Integrated `@uiw/react-codemirror` and `@codemirror/lang-sql`.
+  - Added real-time SQL syntax highlighting, inline line number rails, and parentheses matching in the workspace.
+  - Aligned editor container outlines to M3 blue focus borders.
+- **Persistent Saved Queries & History Drawer**:
+  - Implemented an inline "Save Query" naming box in the editor footer.
+  - Created tabbed side-panels in the Workspace Sidebar: **Schema**, **Saved**, and **History**.
+  - Query history and saved selections are synchronized with browser `localStorage` to persist across reloads.
+  - Added single-click items to load templates, historical queries, or saved scripts back into CodeMirror.
+- **Multi-Dataset SQL Joins**:
+  - Backend now dynamically binds all CSV and Parquet files in the catalog as active database Views on start.
+  - Users can join columns across different files by referencing file names directly (e.g. `SELECT * FROM Walmart JOIN sample ON ...`).
+  - Implemented SQL-compliant double quotes around views to avoid keywords (like `table`) causing compilation parser crashes in DuckDB.
+- **Workspace Roadmap**:
+  - Created `ROADMAP.md` documenting future expansion milestones.
+
+---
+
 ## [0.3.0] - 2026-06-08
 
 ### Added
